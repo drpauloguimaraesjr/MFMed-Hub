@@ -144,7 +144,7 @@ const Dashboard = () => {
   return (
     <div style={{ paddingBottom: '3rem' }}>
       <nav className="navbar fade-in">
-        <h1 style={{ fontSize: '1.3rem', fontWeight: 'bold', letterSpacing: '-0.5px' }}>MedClass Hub</h1>
+        <h1 style={{ fontSize: '1.3rem', fontWeight: 'bold', letterSpacing: '-0.5px' }}>MFMed</h1>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: '1rem', alignItems: 'center' }}>
           <span style={{ fontSize: '0.95rem', color: 'var(--text-muted)' }}>Você: Dr. Exemplo</span>
           <div style={{ width: 42, height: 42, borderRadius: '50%', background: 'linear-gradient(to bottom right, var(--accent-color), #8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>E</div>

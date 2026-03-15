@@ -25,7 +25,7 @@ const Landing = () => {
   return (
     <div className="landing-wrapper" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem 2rem', borderBottom: '1px solid var(--glass-border)', background: 'rgba(11, 15, 25, 0.5)' }}>
-        <h2 style={{ fontSize: '1.4rem', fontWeight: 'bold', margin: 0 }}>MedClass Hub</h2>
+        <h2 style={{ fontSize: '1.4rem', fontWeight: 'bold', margin: 0 }}>MFMed</h2>
         <button className="btn btn-secondary" onClick={() => navigate('/dashboard')} style={{ padding: '0.6rem 1.5rem', fontSize: '0.95rem' }}>
           Login (Área do Aluno)
         </button>
