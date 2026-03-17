@@ -14,10 +14,15 @@ function App() {
         style={{ '--founder-image': `url(${founderImg})` }}
       >
         <Routes>
-          <Route path="/" element={<Dashboard />} />
+          {/* Rota principal (Visitantes / Captação de Leads) */}
+          <Route path="/" element={<Landing />} />
           <Route path="/cadastro" element={<Landing />} />
-          <Route path="/dashboard" element={<Dashboard />} />
+
+          {/* Rota de Login */}
           <Route path="/login" element={<Login />} />
+
+          {/* Rotas Protegidas (Para quem tem conta) */}
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/admin" element={<Admin />} />
         </Routes>
       </div>
