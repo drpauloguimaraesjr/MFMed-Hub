@@ -9,62 +9,10 @@ const Dashboard = () => {
   
   const commentRefs = useRef({});
 
-  const courseModules = [
-    {
-      id: 'm1',
-      title: 'Módulo 1: Prática Clínica Avançada',
-      lessons: [
-        { id: 'm1-a1', title: 'Aula 1: Atualizações em Novos Tratamentos', duration: '45 min' },
-        { id: 'm1-a2', title: 'Aula 2: Protocolos de Dor Torácica', duration: '32 min' },
-        { id: 'm1-a3', title: 'Aula 3: Como ler os guidelines e aplicar na prática', duration: '50 min' }
-      ]
-    },
-    {
-      id: 'm2',
-      title: 'Módulo 2: Casos do Dia-a-Dia',
-      lessons: [
-        { id: 'm2-a1', title: 'Discussão de Caso: Paciente Idoso e Polifarmácia', duration: '28 min' },
-        { id: 'm2-a2', title: 'Discussão de Caso: O Paciente Chocado', duration: '40 min' },
-        { id: 'm2-a3', title: 'Interação Medicamentosa: O que não fazer', duration: '35 min' }
-      ]
-    }
-  ];
-
-  const [activeVideo, setActiveVideo] = useState({
-    id: courseModules[0].lessons[0].id,
-    title: courseModules[0].lessons[0].title,
-    module: courseModules[0].title
-  });
-
-  const [comments, setComments] = useState([
-    {
-      id: 1,
-      author: 'Dra. Ana Costa',
-      text: 'Excelente aula! O caso clínico apresentado aos 15 minutos ilustra perfeitamente a abordagem prática em pronto-socorro.',
-      time: 'Há 2 horas',
-      attachment: null,
-      likes: 14,
-      isLiked: false,
-      replies: []
-    },
-    {
-      id: 2,
-      author: 'Dr. Roberto Mendes',
-      text: 'Estou enviando o guideline europeu mais recente sobre o tema que foi discutido. Vale a leitura. Aborda muito a terapêutica.',
-      time: 'Há 5 horas',
-      attachment: { name: 'ESC_Guidelines_2025.pdf', size: '2.4 MB' },
-      likes: 32,
-      isLiked: true,
-      replies: [
-        { id: 201, author: 'Dra. Sofia Melo', text: 'Muito obrigada por compartilhar! Vai ser muito útil para o debate do módulo 3.', time: 'Há 3 horas' }
-      ]
-    }
-  ]);
-
-  const [repository, setRepository] = useState([
-    { id: 101, commentId: 2, name: 'ESC_Guidelines_2025.pdf', size: '2.4 MB', uploader: 'Dr. Roberto Mendes' },
-    { id: 102, commentId: null, name: 'Trial_Review_Nature.pdf', size: '1.1 MB', uploader: 'Sistema Docente' }
-  ]);
+  const [courseModules, setCourseModules] = useState([]);
+  const [activeVideo, setActiveVideo] = useState(null);
+  const [comments, setComments] = useState([]);
+  const [repository, setRepository] = useState([]);
 
   const handlePostComment = (e) => {
     e.preventDefault();
@@ -167,10 +115,10 @@ const Dashboard = () => {
                   {module.lessons.map(lesson => (
                     <div 
                       key={lesson.id} 
-                      className={`lesson-item ${activeVideo.id === lesson.id ? 'active' : ''}`}
+                      className={`lesson-item ${activeVideo?.id === lesson.id ? 'active' : ''}`}
                       onClick={() => setActiveVideo({ id: lesson.id, title: lesson.title, module: module.title })}
                     >
-                      <Play size={14} fill={activeVideo.id === lesson.id ? "currentColor" : "none"} style={{ opacity: activeVideo.id === lesson.id ? 1 : 0.5, flexShrink: 0 }} />
+                      <Play size={14} fill={activeVideo?.id === lesson.id ? "currentColor" : "none"} style={{ opacity: activeVideo?.id === lesson.id ? 1 : 0.5, flexShrink: 0 }} />
                       <div style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {lesson.title}
                       </div>
@@ -186,22 +134,35 @@ const Dashboard = () => {
         {/* Main Content Area */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', minWidth: 0 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-            <span style={{ color: 'var(--accent-color)', fontSize: '0.95rem', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{activeVideo.module}</span>
-            <h2 style={{ fontSize: '2.1rem', margin: 0, lineHeight: '1.2' }}>{activeVideo.title}</h2>
+            <span style={{ color: 'var(--accent-color)', fontSize: '0.95rem', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{activeVideo?.module || "Nenhum módulo selecionado"}</span>
+            <h2 style={{ fontSize: '2.1rem', margin: 0, lineHeight: '1.2' }}>{activeVideo?.title || "Nenhuma aula selecionada"}</h2>
           </div>
           
-          <div className="video-container" style={{ position: 'relative' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem', color: 'var(--text-muted)' }}>
-              <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'rgba(59, 130, 246, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                <Play size={40} color="var(--accent-color)" />
+          <div className="video-container" style={{ position: 'relative', overflow: 'hidden', paddingBottom: '56.25%', height: 0, borderRadius: '12px', background: '#000' }}>
+            {activeVideo?.pandaId ? (
+              <iframe 
+                src={`https://player.pandavideo.com.br/embed/?v=${activeVideo.pandaId}`} 
+                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }} 
+                allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture" 
+                allowFullScreen
+              ></iframe>
+            ) : (
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1.5rem', color: 'var(--text-muted)' }}>
+                <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'rgba(96, 165, 250, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Play size={40} color="var(--accent-color)" />
+                </div>
+                <p style={{ fontSize: '1.1rem' }}>Selecione uma aula no módulo ao lado</p>
               </div>
-              <p style={{ fontSize: '1.1rem' }}>Player de Vídeo Integrado (Hospedagem Personalizada)</p>
-            </div>
-            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '60px', background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)', padding: '1rem', display: 'flex', alignItems: 'flex-end' }}>
-              <div style={{ height: '4px', background: 'rgba(255,255,255,0.2)', width: '100%', borderRadius: '2px' }}>
-                <div style={{ height: '100%', background: 'var(--accent-color)', width: '30%', borderRadius: '2px' }}></div>
+            )}
+            
+            {/* Download/Offline Action Bar */}
+            {activeVideo?.pandaId && (
+              <div style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 10 }}>
+                <button className="btn" style={{ padding: '0.4rem 1rem', fontSize: '0.85rem', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(5px)' }}>
+                  ⬇ Baixar (PWA)
+                </button>
               </div>
-            </div>
+            )}
           </div>
 
           <div className="glass-panel" style={{ padding: '2rem' }}>
