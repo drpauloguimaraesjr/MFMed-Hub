@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShieldCheck, PlayCircle, Library, Users, Loader } from 'lucide-react';
+import { ShieldCheck, PlayCircle, Library, Users, Loader, Calendar } from 'lucide-react';
 import { db } from '../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
@@ -55,6 +55,17 @@ const Landing = () => {
             Tenha acesso exclusivo a aulas de alto nível rigorosamente revisadas, materiais científicos atualizados e uma comunidade que discute casos clínicos reais direto do seu consultório.
           </p>
           
+          <div style={{ background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)', borderRadius: '12px', padding: '1.5rem', marginBottom: '2.5rem', display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+            <div style={{ background: 'rgba(59, 130, 246, 0.2)', padding: '0.8rem', borderRadius: '50%', color: '#60a5fa' }}>
+              <Calendar size={28} />
+            </div>
+            <div>
+              <span style={{ color: '#60a5fa', fontWeight: 'bold', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Aula Magna de Lançamento</span>
+              <h3 style={{ margin: '0.5rem 0', fontSize: '1.2rem', lineHeight: '1.4', color: '#fff' }}>Reposição de Testosterona no Paciente Cardiovascular: <span style={{ fontWeight: 'normal', opacity: 0.9 }}>protocolo, monitoramento e conduta segura</span></h3>
+              <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.95rem' }}>Nesta Quarta-feira, às 19h (Horário de Brasília)</p>
+            </div>
+          </div>
+
           <div className="landing-features">
             <div className="feature-item">
               <div className="feature-icon"><PlayCircle size={24} /></div>
