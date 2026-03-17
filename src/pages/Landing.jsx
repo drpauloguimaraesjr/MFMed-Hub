@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShieldCheck, PlayCircle, Library, Users } from 'lucide-react';
+import { ShieldCheck, PlayCircle, Library, Users, Loader } from 'lucide-react';
+import { db } from '../firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 const Landing = () => {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -16,10 +19,23 @@ const Landing = () => {
     setFormData({...formData, [e.target.name]: e.target.value});
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Registrado:", formData);
-    navigate('/dashboard');
+    setLoading(true);
+    try {
+      // Save lead to Firestore
+      await addDoc(collection(db, "leads"), {
+        ...formData,
+        createdAt: serverTimestamp()
+      });
+      // Redirect to login or directly to dashboard
+      navigate('/login');
+    } catch (error) {
+      console.error("Erro ao registrar:", error);
+      alert("Houve um erro no seu cadastro. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -87,8 +103,8 @@ const Landing = () => {
               </div>
             </div>
             
-            <button type="submit" className="btn" style={{ marginTop: '1rem', height: '54px', fontSize: '1.15rem' }}>
-              Acessar Módulo Científico Agora
+            <button type="submit" className="btn" disabled={loading} style={{ marginTop: '1rem', height: '54px', fontSize: '1.15rem' }}>
+              {loading ? <Loader className="animate-spin" size={24} /> : 'Acessar Módulo Científico Agora'}
             </button>
             
             <div className="disclaimer-text">
