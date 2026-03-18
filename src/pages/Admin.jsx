@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { UploadCloud, PlusCircle, Settings, LogOut, Video, Megaphone, Image as ImageIcon, Copy, Download, Calendar, ArrowRight } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
-import founderImg from '../assets/founder.jpeg';
+import founderImg from '../assets/mestre_paulo.jpg';
 import { db } from '../firebase';
 import { doc, setDoc } from 'firebase/firestore';
 
@@ -20,10 +20,10 @@ const Admin = () => {
 
   // -- ESTADOS DA ABA DE MARKETING (Lançamento / Aulas Ao Vivo) --
   const [marketingData, setMarketingData] = useState({
-    title: 'Reposição de Testosterona no Paciente Cardiovascular:',
-    subtitle: 'protocolo, monitoramento e conduta segura',
-    date: 'Quarta-feira, às 19h',
-    youtubeLink: 'https://youtube.com/live/seu-link-aqui'
+    title: 'Modulação Fisiológica:',
+    subtitle: 'Prescrição de testosterona, monitoramento, mitos e verdades.',
+    date: 'Hoje, às 19h30',
+    youtubeLink: 'https://youtube.com/live/IL4XUtEGZ_I?feature=share'
   });
   
   const [bgImage, setBgImage] = useState(founderImg);
