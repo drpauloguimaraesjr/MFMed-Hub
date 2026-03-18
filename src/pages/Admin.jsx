@@ -263,36 +263,58 @@ Dr. Paulo Guimarães Jr.`;
               </>
             )}
 
-            {/* O SEU FORMULÁRIO ANTIGO DE UPLOAD DE AULAS PADRÃO */}
             {activeTab === 'video' && (
               <div className="glass-panel" style={{ padding: '2.5rem', borderTop: '4px solid #10b981' }}>
-                <h2 style={{ fontSize: '1.8rem', marginBottom: '0.5rem' }}>Adicionar Nova Aula à Plataforma</h2>
-                <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>Suba o vídeo cru para a plataforma pós-lançamento.</p>
-                <form onSubmit={handleVideoUpload}>
-                  <div className="form-group">
-                    <label>Título da Aula</label>
-                    <input type="text" className="form-input" required placeholder="Ex: Tratamento de Insuficiência Cardíaca" value={uploadData.title} onChange={(e) => setUploadData({...uploadData, title: e.target.value})} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                  <div>
+                    <h2 style={{ fontSize: '1.8rem', marginBottom: '0.3rem' }}>Grade Curricular</h2>
+                    <p style={{ color: 'var(--text-muted)', margin: 0 }}>Gerencie seus módulos e aulas da plataforma de alunos.</p>
                   </div>
-                  <div className="form-row">
-                    <div className="form-group" style={{ flex: 1.5 }}>
-                      <label>Módulo Relacionado</label>
-                      <select className="form-input" value={uploadData.moduleId} onChange={(e) => setUploadData({...uploadData, moduleId: e.target.value})} style={{ appearance: 'none' }}>
-                        {modules.map(m => <option key={m.id} value={m.id} style={{ background: '#0b0f19' }}>{m.title}</option>)}
-                      </select>
-                    </div>
-                    <div className="form-group" style={{ flex: 1 }}>
-                      <label>Duração (minutos)</label>
-                      <input type="text" className="form-input" placeholder="Ex: 45 min" value={uploadData.duration} onChange={(e) => setUploadData({...uploadData, duration: e.target.value})} />
-                    </div>
-                  </div>
-                  <div className="form-group">
-                    <label>ID Panda Video ou Link YouTube Unlisted</label>
-                    <input type="text" className="form-input" placeholder="Coloque o hash de seguranca do Panda Video..." value={uploadData.videoUrl || ''} onChange={(e) => setUploadData({...uploadData, videoUrl: e.target.value})} />
-                  </div>
-                  <button type="submit" className="btn" style={{ marginTop: '1rem', height: '54px', fontSize: '1.1rem', background: '#10b981', boxShadow: '0 8px 16px rgba(16, 185, 129, 0.2)' }}>
-                    <UploadCloud size={20} /> Salvar e Inserir na Plataforma
+                  <button className="btn" style={{ width: 'auto', background: '#10b981', padding: '0.6rem 1.2rem', gap: '8px' }}>
+                    <PlusCircle size={18} /> Novo Módulo
                   </button>
-                </form>
+                </div>
+
+                {modules.map(module => (
+                  <div key={module.id} style={{ marginBottom: '2rem', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px', overflow: 'hidden' }}>
+                    
+                    {/* Module Header */}
+                    <div style={{ padding: '1rem 1.5rem', background: 'rgba(0,0,0,0.3)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                      <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#fff' }}>{module.title}</h3>
+                      <button style={{ background: 'none', border: 'none', color: '#10b981', cursor: 'pointer', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <PlusCircle size={14} /> Adicionar Aula
+                      </button>
+                    </div>
+
+                    {/* Lesson Items */}
+                    <div style={{ padding: '1rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                      {/* Fake Item 1 */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.8rem', background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
+                        <div style={{ width: 40, height: 40, background: 'rgba(16, 185, 129, 0.1)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10b981' }}>
+                          <Video size={18} />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <h4 style={{ margin: '0 0 0.2rem 0', fontSize: '0.95rem' }}>O Paciente Chocado</h4>
+                          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>40 min • ID Panda: 23d9x0012</span>
+                        </div>
+                        <span style={{ fontSize: '0.75rem', padding: '4px 10px', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', borderRadius: '12px', fontWeight: 'bold' }}>Publicada</span>
+                      </div>
+                      
+                      {/* Fake Item 2 */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.8rem', background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
+                        <div style={{ width: 40, height: 40, background: 'rgba(16, 185, 129, 0.1)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10b981' }}>
+                          <Video size={18} />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <h4 style={{ margin: '0 0 0.2rem 0', fontSize: '0.95rem' }}>Atualização em Diretrizes (2025)</h4>
+                          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Pendente: Sem vídeo adicionado</span>
+                        </div>
+                        <span style={{ fontSize: '0.75rem', padding: '4px 10px', background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', borderRadius: '12px', fontWeight: 'bold' }}>Rascunho</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
               </div>
             )}
 
