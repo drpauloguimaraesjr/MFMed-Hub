@@ -116,7 +116,7 @@ const Landing = () => {
                 <Calendar size={28} />
               </div>
               <div>
-                <span style={{ color: '#60a5fa', fontWeight: 'bold', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Aula Magna de Lançamento</span>
+                <span style={{ color: '#60a5fa', fontWeight: 'bold', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Prescrição de testosterona, monitoramento, mitos e verdades.</span>
                 <h3 style={{ margin: '0.5rem 0', fontSize: '1.2rem', lineHeight: '1.4', color: '#fff' }}>Reposição de Testosterona no Paciente Cardiovascular: <span style={{ fontWeight: 'normal', opacity: 0.9 }}>protocolo, monitoramento e conduta segura</span></h3>
                 <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.95rem' }}>Nesta Quarta-feira, às 19h (Horário de Brasília)</p>
               </div>
