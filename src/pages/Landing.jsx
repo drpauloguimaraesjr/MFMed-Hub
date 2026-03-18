@@ -103,7 +103,10 @@ const Landing = () => {
           
           {/* LADO ESQUERDO DA TELA: PROMESSA E VALOR */}
           <div className="landing-hero fade-in">
-            <h1 className="title">Sua Evolução Médica, Centralizada.</h1>
+            <h1 className="title" style={{ lineHeight: '1.2' }}>
+              Modulação Fisiológica,<br/>
+              <span style={{ fontSize: '2.8rem', color: 'var(--accent-color)', fontWeight: '600' }}>QUARTA FEIRA ÀS 19h30min.</span>
+            </h1>
             <p className="subtitle">
               Tenha acesso exclusivo a aulas de alto nível rigorosamente revisadas, materiais científicos atualizados e uma comunidade que discute casos clínicos reais direto do seu consultório.
             </p>
