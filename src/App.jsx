@@ -11,7 +11,6 @@ function App() {
     <Router>
       <div
         className="app-wrapper"
-        style={{ '--founder-image': `url(${founderImg})` }}
       >
         <Routes>
           {/* Rota principal (Visitantes / Captação de Leads) */}
