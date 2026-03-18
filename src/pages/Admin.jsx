@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { UploadCloud, PlusCircle, Settings, LogOut, Video, Megaphone, Image as ImageIcon, Copy, Download, Calendar, ArrowRight } from 'lucide-react';
+import { UploadCloud, PlusCircle, Settings, LogOut, Video, Megaphone, Image as ImageIcon, Copy, Download, Calendar, ArrowRight, Play } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
 import founderImg from '../assets/mestre_paulo.jpg';
 import { db } from '../firebase';
