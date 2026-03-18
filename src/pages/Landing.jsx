@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ShieldCheck, PlayCircle, Library, Users, Loader, Calendar, ArrowRight, CheckCircle, Lock } from 'lucide-react';
 import { db } from '../firebase';
 import { collection, addDoc, getDocs, query, where, serverTimestamp } from 'firebase/firestore';
+import drPauloImg from '../assets/mestre_paulo.jpg';
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -89,11 +90,11 @@ const Landing = () => {
   };
 
   return (
-    <div className="landing-wrapper" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div className="landing-wrapper" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', '--hero-image': `url(${drPauloImg})` }}>
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem 2rem', borderBottom: '1px solid var(--glass-border)', background: 'rgba(11, 15, 25, 0.5)' }}>
         <h2 style={{ fontSize: '1.4rem', fontWeight: 'bold', margin: 0 }}>MFMed</h2>
         <button className="btn btn-secondary" onClick={() => navigate('/login')} style={{ padding: '0.6rem 1.5rem', fontSize: '0.95rem' }}>
-          Consultar Conta Google
+          Área do Aluno (Login)
         </button>
       </header>
 

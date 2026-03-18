@@ -67,19 +67,19 @@ body {
   content: '';
   position: fixed;
   top: 0;
-  right: -5%;
-  width: 55%;
+  right: 0;
+  width: 60%;
   height: 100%;
-  background-image: var(--founder-image);
+  background-image: var(--hero-image);
   background-size: cover;
-  background-position: center top;
+  background-position: center 20%;
   background-repeat: no-repeat;
-  opacity: 0.12;
+  opacity: 0.3;
   z-index: 0;
   pointer-events: none;
-  filter: grayscale(0.3) contrast(1.05);
-  mask-image: linear-gradient(to left, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.3) 50%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to left, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.3) 50%, transparent 100%);
+  filter: grayscale(0.4) contrast(1.1);
+  mask-image: linear-gradient(to left, rgba(0,0,0,1) 0%, rgba(0,0,0,0.5) 40%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to left, rgba(0,0,0,1) 0%, rgba(0,0,0,0.5) 40%, transparent 100%);
 }
 
 .landing-wrapper > * {
