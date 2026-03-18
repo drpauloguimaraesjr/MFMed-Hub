@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { UploadCloud, PlusCircle, Settings, LogOut, Video, Megaphone, Image as ImageIcon, Copy, Download, Calendar, ArrowRight } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
 import founderImg from '../assets/founder.jpeg';
+import { db } from '../firebase';
+import { doc, setDoc } from 'firebase/firestore';
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -27,6 +29,23 @@ const Admin = () => {
   const [bgImage, setBgImage] = useState(founderImg);
   const feedRef = useRef(null);
   const storyRef = useRef(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSaveMarketing = async () => {
+    if (!marketingData.title || !marketingData.youtubeLink) {
+      alert("Por favor, preencha o título e o link do YouTube.");
+      return;
+    }
+    setIsSaving(true);
+    try {
+      await setDoc(doc(db, "settings", "live_event"), marketingData);
+      alert("Agendamento Salvo! O link do YouTube e o aviso já estão aparecendo na plataforma para os alunos.");
+    } catch (error) {
+      console.error("Erro ao salvar agendamento:", error);
+      alert("Erro de conexão ao salvar no banco de dados.");
+    }
+    setIsSaving(false);
+  };
 
   const handleVideoUpload = (e) => {
     e.preventDefault();
@@ -141,9 +160,14 @@ Dr. Paulo Guimarães Jr.`;
                   <h2 style={{ fontSize: '1.6rem', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <Megaphone color="#60a5fa" /> Fábrica de Lançamentos
                   </h2>
-                  <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>
-                    Configure os dados da sua próxima aula (Ex: YouTube Live). O sistema irá formatar os criativos do Instagram e o texto do Email de disparo automaticamente para você.
-                  </p>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                    <p style={{ color: 'var(--text-muted)', margin: 0, maxWidth: '60%' }}>
+                      Configure os dados da sua próxima aula (Ex: YouTube Live). O sistema publicará este agendamento na plataforma dos alunos e formatará os materiais de marketing.
+                    </p>
+                    <button onClick={handleSaveMarketing} disabled={isSaving} className="btn" style={{ width: 'auto', padding: '0.6rem 1.5rem', background: '#2563eb' }}>
+                      {isSaving ? "Salvando..." : "Salvar Agendamento no Banco"}
+                    </button>
+                  </div>
                   
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                     <div className="form-group">

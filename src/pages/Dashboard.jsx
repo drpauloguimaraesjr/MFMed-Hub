@@ -1,5 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { FileText, Download, Send, Play, Paperclip, Library, Heart, MessageCircle } from 'lucide-react';
+import { db } from '../firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 const Dashboard = () => {
   const [newComment, setNewComment] = useState("");
@@ -13,6 +15,38 @@ const Dashboard = () => {
   const [activeVideo, setActiveVideo] = useState(null);
   const [comments, setComments] = useState([]);
   const [repository, setRepository] = useState([]);
+  const [liveEvent, setLiveEvent] = useState(null);
+
+  useEffect(() => {
+    const fetchLiveEvent = async () => {
+      try {
+        const docRef = doc(db, "settings", "live_event");
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setLiveEvent(docSnap.data());
+        }
+      } catch (error) {
+        console.error("Erro ao buscar agendamento ao vivo:", error);
+      }
+    };
+    fetchLiveEvent();
+  }, []);
+
+  const getYoutubeEmbedUrl = (url) => {
+    if (!url) return '';
+    try {
+      if (url.includes('youtube.com/live/')) return url.replace('youtube.com/live/', 'youtube.com/embed/').split('?')[0];
+      if (url.includes('youtube.com/watch?v=')) {
+        const videoId = new URL(url).searchParams.get('v');
+        return `https://www.youtube.com/embed/${videoId}`;
+      }
+      if (url.includes('youtu.be/')) {
+        const videoId = url.split('youtu.be/')[1].split('?')[0];
+        return `https://www.youtube.com/embed/${videoId}`;
+      }
+    } catch (e) { return url; }
+    return url;
+  };
 
   const handlePostComment = (e) => {
     e.preventDefault();
@@ -133,37 +167,81 @@ const Dashboard = () => {
 
         {/* Main Content Area */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', minWidth: 0 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-            <span style={{ color: 'var(--accent-color)', fontSize: '0.95rem', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{activeVideo?.module || "Nenhum módulo selecionado"}</span>
-            <h2 style={{ fontSize: '2.1rem', margin: 0, lineHeight: '1.2' }}>{activeVideo?.title || "Nenhuma aula selecionada"}</h2>
-          </div>
           
-          <div className="video-container" style={{ position: 'relative', overflow: 'hidden', paddingBottom: '56.25%', height: 0, borderRadius: '12px', background: '#000' }}>
-            {activeVideo?.pandaId ? (
-              <iframe 
-                src={`https://player.pandavideo.com.br/embed/?v=${activeVideo.pandaId}`} 
-                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }} 
-                allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture" 
-                allowFullScreen
-              ></iframe>
-            ) : (
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1.5rem', color: 'var(--text-muted)' }}>
-                <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'rgba(96, 165, 250, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Play size={40} color="var(--accent-color)" />
+          {/* SESSÃO AO VIVO DO YOUTUBE PINADA NO TOPO */}
+          {liveEvent && liveEvent.youtubeLink && !activeVideo && (
+            <div className="fade-in" style={{ background: '#0b0f19', border: '1px solid #ef4444', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 10px 30px rgba(239, 68, 68, 0.15)' }}>
+              <div style={{ padding: '1rem 1.5rem', background: 'rgba(239, 68, 68, 0.1)', borderBottom: '1px solid rgba(239, 68, 68, 0.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#ef4444', boxShadow: '0 0 10px #ef4444' }}></div>
+                  <span style={{ color: '#ef4444', fontWeight: 'bold', letterSpacing: '1px', fontSize: '0.9rem' }}>TRANSMISSÃO AGENDADA: {liveEvent.date}</span>
                 </div>
-                <p style={{ fontSize: '1.1rem' }}>Selecione uma aula no módulo ao lado</p>
               </div>
-            )}
-            
-            {/* Download/Offline Action Bar */}
-            {activeVideo?.pandaId && (
-              <div style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 10 }}>
-                <button className="btn" style={{ padding: '0.4rem 1rem', fontSize: '0.85rem', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(5px)' }}>
-                  ⬇ Baixar (PWA)
-                </button>
+              
+              <div style={{ padding: '1.5rem' }}>
+                <h2 style={{ fontSize: '1.8rem', marginTop: 0, marginBottom: '0.5rem', color: '#fff' }}>
+                  {liveEvent.title} <span style={{ color: '#60a5fa', fontWeight: '400' }}>{liveEvent.subtitle}</span>
+                </h2>
+                
+                <div style={{ position: 'relative', overflow: 'hidden', paddingBottom: '56.25%', height: 0, borderRadius: '12px', background: '#000', marginTop: '1.5rem', border: '1px solid var(--glass-border)' }}>
+                  <iframe 
+                    src={getYoutubeEmbedUrl(liveEvent.youtubeLink)} 
+                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }} 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                    allowFullScreen
+                  ></iframe>
+                </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
+
+          {/* VÍDEO SELECIONADO (PANDA PLATAFORMA) */}
+          {activeVideo && (
+            <>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <span style={{ color: 'var(--accent-color)', fontSize: '0.95rem', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{activeVideo?.module || "Nenhum módulo selecionado"}</span>
+                <h2 style={{ fontSize: '2.1rem', margin: 0, lineHeight: '1.2' }}>{activeVideo?.title || "Nenhuma aula selecionada"}</h2>
+              </div>
+              
+              <div className="video-container" style={{ position: 'relative', overflow: 'hidden', paddingBottom: '56.25%', height: 0, borderRadius: '12px', background: '#000' }}>
+                {activeVideo?.pandaId ? (
+                  <iframe 
+                    src={`https://player.pandavideo.com.br/embed/?v=${activeVideo.pandaId}`} 
+                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }} 
+                    allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture" 
+                    allowFullScreen
+                  ></iframe>
+                ) : (
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1.5rem', color: 'var(--text-muted)' }}>
+                    <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'rgba(96, 165, 250, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Play size={40} color="var(--accent-color)" />
+                    </div>
+                    <p style={{ fontSize: '1.1rem' }}>Esse vídeo ainda está sendo carregado</p>
+                  </div>
+                )}
+                
+                {/* Download/Offline Action Bar */}
+                {activeVideo?.pandaId && (
+                  <div style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 10 }}>
+                    <button className="btn" style={{ padding: '0.4rem 1rem', fontSize: '0.85rem', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(5px)' }}>
+                      ⬇ Baixar (PWA)
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {!activeVideo && !liveEvent && (
+             <div className="video-container" style={{ position: 'relative', overflow: 'hidden', paddingBottom: '56.25%', height: 0, borderRadius: '12px', background: '#000' }}>
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1.5rem', color: 'var(--text-muted)' }}>
+                  <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'rgba(96, 165, 250, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Play size={40} color="var(--accent-color)" />
+                  </div>
+                  <p style={{ fontSize: '1.1rem' }}>Selecione uma aula no módulo ao lado</p>
+                </div>
+             </div>
+          )}
 
           <div className="glass-panel" style={{ padding: '2rem' }}>
             <div className="comments-section">
