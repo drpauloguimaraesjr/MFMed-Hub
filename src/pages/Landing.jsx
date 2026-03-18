@@ -221,21 +221,28 @@ const Landing = () => {
 
             {/* ETAPA 4: SUCESSO! */}
             {step === 'success' && (
-              <div className="fade-in" style={{ textAlign: 'center', padding: '2rem 1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-                <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto', color: '#10b981' }}>
-                  <CheckCircle size={40} />
+              <div className="fade-in" style={{ textAlign: 'center', padding: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                <div style={{ width: 60, height: 60, borderRadius: '50%', background: 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem auto', color: '#10b981' }}>
+                  <CheckCircle size={30} />
                 </div>
-                <h2 style={{ fontSize: '1.8rem', fontWeight: 'bold', marginBottom: '1rem', color: '#fff' }}>Cadastro Validado!</h2>
-                <p style={{ color: 'var(--text-light)', fontSize: '1.05rem', lineHeight: '1.6', marginBottom: '2rem' }}>
-                  Você receberá um e-mail com as <strong>instruções de acesso e sua senha provisória</strong> para acessar o MFMed Hub e a nossa Aula Magna.
+                <h2 style={{ fontSize: '1.6rem', fontWeight: 'bold', marginBottom: '0.8rem', color: '#fff' }}>Vaga Garantida!</h2>
+                
+                <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '12px', padding: '1.2rem', marginBottom: '1.5rem', width: '100%' }}>
+                  <h3 style={{ color: '#ef4444', margin: '0 0 0.5rem 0', fontSize: '1.1rem' }}>⚠️ A AULA É HOJE ÀS 19h30</h3>
+                  <p style={{ color: '#fff', fontSize: '0.95rem', marginBottom: '1rem', lineHeight: '1.4' }}>
+                    Para não esquecer, clique no botão abaixo agora mesmo e ative o lembrete direto lá no YouTube:
+                  </p>
+                  <a href="https://youtube.com/live/IL4XUtEGZ_I?feature=share" target="_blank" rel="noopener noreferrer" className="btn" style={{ background: '#ef4444', color: '#fff', textDecoration: 'none', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
+                    <PlayCircle size={20} /> Acessar Link do YouTube
+                  </a>
+                </div>
+                
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: '1.5', borderTop: '1px solid var(--glass-border)', paddingTop: '1rem' }}>
+                  Enviamos também as instruções de acesso oficial à plataforma para o seu e-mail. Caso já tenha uma senha validada:
                 </p>
                 
-                <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', fontSize: '0.85rem', color: 'var(--text-muted)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                  Aguarde na sua caixa de entrada. Não se esqueça de checar a guia Promoções (ou Spam) caso não encontre na principal.
-                </div>
-                
-                <button onClick={() => setStep('login')} className="btn btn-secondary" style={{ marginTop: '2rem', padding: '0.8rem 2rem' }}>
-                  Já tenho minha senha
+                <button onClick={() => setStep('login')} className="btn btn-secondary" style={{ marginTop: '1rem', padding: '0.6rem 1.5rem', width: 'auto' }}>
+                  Fazer Login na Plataforma
                 </button>
               </div>
             )}
