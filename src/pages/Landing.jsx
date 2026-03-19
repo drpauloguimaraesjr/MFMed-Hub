@@ -58,14 +58,30 @@ const Landing = () => {
     e.preventDefault();
     setLoading(true);
     try {
+      const tempPassword = Math.random().toString(36).slice(-6).toUpperCase();
+
       await addDoc(collection(db, "leads"), {
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
         state: formData.state,
         city: formData.city,
+        tempPassword: tempPassword,
         createdAt: serverTimestamp()
       });
+
+      // Envia o E-mail de Recepção/Acesso Via API Serverless
+      fetch('/api/send-welcome', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          tempPassword: tempPassword,
+          youtubeLink: 'https://youtube.com/live/IL4XUtEGZ_I?feature=share'
+        })
+      }).catch(err => console.error('Erro silencioso no disparo do e-mail:', err));
+
       // Ponto focal requisitado pelo usuário: A pessoa recebe um sucesso!
       setStep('success');
     } catch (error) {
