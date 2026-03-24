@@ -1,22 +1,42 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShieldCheck, LogIn, Loader } from 'lucide-react';
+import { ShieldCheck, Loader } from 'lucide-react';
 import { loginWithGoogle } from '../firebase';
+import { useAuth } from '../AuthContext';
+
+// Lista de e-mails admin (deve ser a mesma do AuthContext.jsx)
+const ADMIN_EMAILS = [
+  'drpauloguimaraesjr@gmail.com',
+];
 
 const Login = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+
+  // Se já está logado, redireciona automaticamente
+  React.useEffect(() => {
+    if (user) {
+      const isAdmin = ADMIN_EMAILS.includes(user.email?.toLowerCase());
+      navigate(isAdmin ? '/admin' : '/dashboard', { replace: true });
+    }
+  }, [user, navigate]);
 
   const handleGoogleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
       const result = await loginWithGoogle();
-      console.log("Usuário logado:", result.user.displayName);
-      navigate('/dashboard');
+      const email = result.user.email?.toLowerCase();
+      const isAdmin = ADMIN_EMAILS.includes(email);
+      
+      console.log("Usuário logado:", result.user.displayName, "| Admin:", isAdmin);
+      navigate(isAdmin ? '/admin' : '/dashboard');
     } catch (error) {
       console.error("Erro no login:", error);
-      alert("Houve um erro ao fazer login com o Google.");
+      if (error.code !== 'auth/popup-closed-by-user') {
+        alert("Houve um erro ao fazer login com o Google.");
+      }
     } finally {
       setLoading(false);
     }
@@ -54,24 +74,15 @@ const Login = () => {
                 <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
               </svg>
-              Continuar com o Google
+              Entrar com Google
             </>
           )}
         </button>
 
-        <div style={{ display: 'flex', alignItems: 'center', margin: '2rem 0', color: 'var(--text-muted)' }}>
-          <div style={{ flex: 1, height: '1px', background: 'var(--glass-border)' }}></div>
-          <span style={{ padding: '0 1rem', fontSize: '0.85rem' }}>OU ACESSO ADMINISTRATIVO</span>
-          <div style={{ flex: 1, height: '1px', background: 'var(--glass-border)' }}></div>
-        </div>
-
-        <button 
-          onClick={() => navigate('/admin')}
-          className="btn btn-secondary" 
-          style={{ width: '100%', gap: '0.8rem', height: '50px' }}
-        >
-          <LogIn size={18} /> Acesso de Professor
-        </button>
+        <p style={{ marginTop: '2rem', fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
+          Alunos e professores usam o mesmo botão.<br/>
+          O sistema identifica automaticamente seu perfil.
+        </p>
       </div>
     </div>
   );

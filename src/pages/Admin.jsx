@@ -11,19 +11,16 @@ const Admin = () => {
   const [activeTab, setActiveTab] = useState('marketing'); // 'video' | 'marketing'
   
   // -- ESTADOS DA ABA DE VÍDEO (Aulas Regulares) --
-  const [modules, setModules] = useState([
-    { id: 'm1', title: 'Módulo 1: Prática Clínica Avançada' },
-    { id: 'm2', title: 'Módulo 2: Casos do Dia-a-Dia' }
-  ]);
-  const [uploadData, setUploadData] = useState({ title: '', duration: '', moduleId: 'm1', description: '', videoUrl: '' });
+  const [modules, setModules] = useState([]);
+  const [uploadData, setUploadData] = useState({ title: '', duration: '', moduleId: '', description: '', videoUrl: '' });
   const [videoFile, setVideoFile] = useState(null);
 
   // -- ESTADOS DA ABA DE MARKETING (Lançamento / Aulas Ao Vivo) --
   const [marketingData, setMarketingData] = useState({
-    title: 'Modulação Fisiológica:',
-    subtitle: 'Prescrição de testosterona, monitoramento, mitos e verdades.',
-    date: 'Hoje, às 19h30',
-    youtubeLink: 'https://youtube.com/live/IL4XUtEGZ_I?feature=share'
+    title: '',
+    subtitle: '',
+    date: '',
+    youtubeLink: ''
   });
   
   const [bgImage, setBgImage] = useState(founderImg);
@@ -90,21 +87,17 @@ const Admin = () => {
     }
   };
 
-  // E-mail Template
-  const emailTemplate = `Assunto: O segredo da Testosterona no Paciente Cardiovascular (Aula Magna)
+  // E-mail Template (gerado dinamicamente a partir dos dados do formulário)
+  const emailTemplate = `Assunto: ${marketingData.title} ${marketingData.subtitle} (Aula Magna)
 
 Colega Médico(a),
 
-Muitos de nós fomos ensinados a temer a reposição de testosterona em pacientes com histórico cardiovascular. Mas a ciência evoluiu, e as condutas antigas estão sendo revisadas.
+${marketingData.date ? `Nesta ${marketingData.date}` : '[Data]'}, realizarei a nossa Aula Magna Oficial de Lançamento da plataforma MFMed Hub. 
 
-Nesta ${marketingData.date}, realizarei a nossa Aula Magna Oficial de Lançamento da plataforma MFMed Hub. 
-
-Tema: ${marketingData.title} ${marketingData.subtitle}
-
-Nesta transmissão, farei um dissecamento completo de qual é o protocolo atual, os exames que você não pode esquecer de pedir antes de prescrever, e a conduta de longo prazo focada em segurança do paciente.
+Tema: ${marketingData.title || '[Título]'} ${marketingData.subtitle || '[Subtítulo]'}
 
 Acesse pelo link abaixo no horário marcado:
-🔗 LINK DA AULA: ${marketingData.youtubeLink}
+🔗 LINK DA AULA: ${marketingData.youtubeLink || '[Link do YouTube]'}
 
 Nos vemos lá.
 Dr. Paulo Guimarães Jr.`;
@@ -312,29 +305,24 @@ Dr. Paulo Guimarães Jr.`;
 
                     {/* Lesson Items */}
                     <div style={{ padding: '1rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                      {/* Fake Item 1 */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.8rem', background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
-                        <div style={{ width: 40, height: 40, background: 'rgba(16, 185, 129, 0.1)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10b981' }}>
-                          <Video size={18} />
+                      {module.lessons && module.lessons.length > 0 ? (
+                        module.lessons.map(lesson => (
+                          <div key={lesson.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.8rem', background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
+                            <div style={{ width: 40, height: 40, background: 'rgba(16, 185, 129, 0.1)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10b981' }}>
+                              <Video size={18} />
+                            </div>
+                            <div style={{ flex: 1 }}>
+                              <h4 style={{ margin: '0 0 0.2rem 0', fontSize: '0.95rem' }}>{lesson.title}</h4>
+                              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{lesson.duration || 'Sem duração'}</span>
+                            </div>
+                            <span style={{ fontSize: '0.75rem', padding: '4px 10px', background: lesson.published ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)', color: lesson.published ? '#10b981' : '#ef4444', borderRadius: '12px', fontWeight: 'bold' }}>{lesson.published ? 'Publicada' : 'Rascunho'}</span>
+                          </div>
+                        ))
+                      ) : (
+                        <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '1.5rem', fontSize: '0.9rem' }}>
+                          Nenhuma aula adicionada a este módulo.
                         </div>
-                        <div style={{ flex: 1 }}>
-                          <h4 style={{ margin: '0 0 0.2rem 0', fontSize: '0.95rem' }}>O Paciente Chocado</h4>
-                          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>40 min • ID Panda: 23d9x0012</span>
-                        </div>
-                        <span style={{ fontSize: '0.75rem', padding: '4px 10px', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', borderRadius: '12px', fontWeight: 'bold' }}>Publicada</span>
-                      </div>
-                      
-                      {/* Fake Item 2 */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.8rem', background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
-                        <div style={{ width: 40, height: 40, background: 'rgba(16, 185, 129, 0.1)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10b981' }}>
-                          <Video size={18} />
-                        </div>
-                        <div style={{ flex: 1 }}>
-                          <h4 style={{ margin: '0 0 0.2rem 0', fontSize: '0.95rem' }}>Atualização em Diretrizes (2025)</h4>
-                          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Pendente: Sem vídeo adicionado</span>
-                        </div>
-                        <span style={{ fontSize: '0.75rem', padding: '4px 10px', background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', borderRadius: '12px', fontWeight: 'bold' }}>Rascunho</span>
-                      </div>
+                      )}
                     </div>
                   </div>
                 ))}

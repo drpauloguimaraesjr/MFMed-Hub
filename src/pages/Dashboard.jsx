@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { FileText, Download, Send, Play, Paperclip, Library, Heart, MessageCircle } from 'lucide-react';
 import { db } from '../firebase';
 import { doc, getDoc } from 'firebase/firestore';
+import { useAuth } from '../AuthContext';
 
 const Dashboard = () => {
   const [newComment, setNewComment] = useState("");
@@ -15,6 +16,10 @@ const Dashboard = () => {
   const [activeVideo, setActiveVideo] = useState(null);
   const [comments, setComments] = useState([]);
   const [repository, setRepository] = useState([]);
+  const { user } = useAuth();
+  const userName = user?.displayName || 'Usuário';
+  const userInitial = userName.charAt(0).toUpperCase();
+
   const [liveEvent, setLiveEvent] = useState(null);
 
   useEffect(() => {
@@ -55,7 +60,7 @@ const Dashboard = () => {
     const newCommentId = Date.now();
     const newCommentObj = {
       id: newCommentId,
-      author: 'Você (Dr. Exemplo)',
+      author: userName,
       text: newComment,
       time: 'Agora mesmo',
       attachment: selectedFile ? { name: selectedFile.name, size: 'Arquivo Local' } : null,
@@ -99,7 +104,7 @@ const Dashboard = () => {
       if (c.id === commentId) {
         return {
           ...c,
-          replies: [...c.replies, { id: Date.now(), author: 'Você (Dr. Exemplo)', text: replyText, time: 'Agora mesmo' }]
+          replies: [...c.replies, { id: Date.now(), author: userName, text: replyText, time: 'Agora mesmo' }]
         };
       }
       return c;
@@ -128,8 +133,12 @@ const Dashboard = () => {
       <nav className="navbar fade-in">
         <h1 style={{ fontSize: '1.3rem', fontWeight: 'bold', letterSpacing: '-0.5px' }}>MFMed</h1>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.95rem', color: 'var(--text-muted)' }}>Você: Dr. Exemplo</span>
-          <div style={{ width: 42, height: 42, borderRadius: '50%', background: 'linear-gradient(to bottom right, var(--accent-color), #8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>E</div>
+          <span style={{ fontSize: '0.95rem', color: 'var(--text-muted)' }}>{userName}</span>
+          {user?.photoURL ? (
+            <img src={user.photoURL} alt={userName} style={{ width: 42, height: 42, borderRadius: '50%', objectFit: 'cover' }} />
+          ) : (
+            <div style={{ width: 42, height: 42, borderRadius: '50%', background: 'linear-gradient(to bottom right, var(--accent-color), #8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>{userInitial}</div>
+          )}
         </div>
       </nav>
 
