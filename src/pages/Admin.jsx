@@ -1,21 +1,27 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { UploadCloud, PlusCircle, Settings, LogOut, Video, Megaphone, Image as ImageIcon, Copy, Download, Calendar, ArrowRight, Play } from 'lucide-react';
+import { UploadCloud, PlusCircle, Settings, LogOut, Video, Megaphone, Image as ImageIcon, Copy, Download, Calendar, ArrowRight, Play, Trash2, Edit3, Users, Mail, Phone, MapPin, Search, ChevronDown, ChevronUp } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
 import founderImg from '../assets/mestre_paulo.jpg';
-import { db } from '../firebase';
-import { doc, setDoc } from 'firebase/firestore';
+import { db, storage } from '../firebase';
+import { doc, setDoc, collection, addDoc, getDocs, deleteDoc, updateDoc, query, orderBy, serverTimestamp } from 'firebase/firestore';
+import { logout } from '../firebase';
+import LessonModal from '../components/LessonModal';
 
 const Admin = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('marketing'); // 'video' | 'marketing'
+  const [activeTab, setActiveTab] = useState('marketing'); // 'video' | 'marketing' | 'inscritos'
   
   // -- ESTADOS DA ABA DE VÍDEO (Aulas Regulares) --
   const [modules, setModules] = useState([]);
-  const [uploadData, setUploadData] = useState({ title: '', duration: '', moduleId: '', description: '', videoUrl: '' });
-  const [videoFile, setVideoFile] = useState(null);
+  const [loadingModules, setLoadingModules] = useState(false);
 
-  // -- ESTADOS DA ABA DE MARKETING (Lançamento / Aulas Ao Vivo) --
+  // -- LESSON MODAL --
+  const [lessonModalOpen, setLessonModalOpen] = useState(false);
+  const [editingLesson, setEditingLesson] = useState(null);
+  const [editingModuleId, setEditingModuleId] = useState(null);
+
+  // -- ESTADOS DA ABA DE MARKETING --
   const [marketingData, setMarketingData] = useState({
     title: '',
     subtitle: '',
@@ -28,6 +34,150 @@ const Admin = () => {
   const storyRef = useRef(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  // -- ESTADOS DA ABA INSCRITOS --
+  const [leads, setLeads] = useState([]);
+  const [loadingLeads, setLoadingLeads] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [expandedLead, setExpandedLead] = useState(null);
+
+  // ========== FIRESTORE: LOAD MODULES + LESSONS ==========
+  const fetchModules = async () => {
+    setLoadingModules(true);
+    try {
+      const modulesQuery = query(collection(db, "modules"), orderBy("order", "asc"));
+      const modulesSnap = await getDocs(modulesQuery);
+      
+      const modulesData = [];
+      for (const moduleDoc of modulesSnap.docs) {
+        const lessonsQuery = query(collection(db, "modules", moduleDoc.id, "lessons"), orderBy("order", "asc"));
+        const lessonsSnap = await getDocs(lessonsQuery);
+        const lessons = lessonsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        modulesData.push({ id: moduleDoc.id, ...moduleDoc.data(), lessons });
+      }
+      setModules(modulesData);
+    } catch (error) {
+      console.error("Erro ao carregar módulos:", error);
+    }
+    setLoadingModules(false);
+  };
+
+  // ========== FIRESTORE: LOAD LEADS ==========
+  const fetchLeads = async () => {
+    setLoadingLeads(true);
+    try {
+      const leadsQuery = query(collection(db, "leads"), orderBy("createdAt", "desc"));
+      const snap = await getDocs(leadsQuery);
+      setLeads(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (error) {
+      console.error("Erro ao carregar inscritos:", error);
+    }
+    setLoadingLeads(false);
+  };
+
+  useEffect(() => {
+    fetchModules();
+    fetchLeads();
+  }, []);
+
+  // ========== MODULE CRUD ==========
+  const handleAddModule = async () => {
+    const title = prompt("Nome do novo módulo:");
+    if (!title || !title.trim()) return;
+    try {
+      await addDoc(collection(db, "modules"), {
+        title: title.trim(),
+        order: modules.length,
+        createdAt: serverTimestamp(),
+      });
+      fetchModules();
+    } catch (error) {
+      console.error("Erro ao criar módulo:", error);
+      alert("Erro ao criar módulo.");
+    }
+  };
+
+  const handleRenameModule = async (moduleId, currentTitle) => {
+    const newTitle = prompt("Novo nome do módulo:", currentTitle);
+    if (!newTitle || !newTitle.trim() || newTitle.trim() === currentTitle) return;
+    try {
+      await updateDoc(doc(db, "modules", moduleId), { title: newTitle.trim() });
+      fetchModules();
+    } catch (error) {
+      console.error("Erro ao renomear:", error);
+      alert("Erro ao renomear módulo.");
+    }
+  };
+
+  const handleDeleteModule = async (moduleId, lessonsCount) => {
+    const msg = lessonsCount > 0
+      ? `Este módulo tem ${lessonsCount} aula(s). Excluir tudo? Esta ação não pode ser desfeita.`
+      : "Excluir este módulo vazio?";
+    if (!confirm(msg)) return;
+    try {
+      // Delete all lessons first
+      const lessonsSnap = await getDocs(collection(db, "modules", moduleId, "lessons"));
+      for (const lessonDoc of lessonsSnap.docs) {
+        await deleteDoc(doc(db, "modules", moduleId, "lessons", lessonDoc.id));
+      }
+      await deleteDoc(doc(db, "modules", moduleId));
+      fetchModules();
+    } catch (error) {
+      console.error("Erro ao excluir módulo:", error);
+      alert("Erro ao excluir módulo.");
+    }
+  };
+
+  // ========== LESSON CRUD ==========
+  const openNewLesson = (moduleId) => {
+    setEditingModuleId(moduleId);
+    setEditingLesson(null);
+    setLessonModalOpen(true);
+  };
+
+  const openEditLesson = (moduleId, lesson) => {
+    setEditingModuleId(moduleId);
+    setEditingLesson(lesson);
+    setLessonModalOpen(true);
+  };
+
+  const handleSaveLesson = async (formData) => {
+    if (!editingModuleId) return;
+    try {
+      if (editingLesson) {
+        // Update existing
+        await updateDoc(doc(db, "modules", editingModuleId, "lessons", editingLesson.id), {
+          ...formData,
+          updatedAt: serverTimestamp(),
+        });
+      } else {
+        // Create new
+        const mod = modules.find(m => m.id === editingModuleId);
+        const currentLessonsCount = mod?.lessons?.length || 0;
+        await addDoc(collection(db, "modules", editingModuleId, "lessons"), {
+          ...formData,
+          order: currentLessonsCount,
+          createdAt: serverTimestamp(),
+        });
+      }
+      fetchModules();
+    } catch (error) {
+      console.error("Erro ao salvar aula:", error);
+      throw error;
+    }
+  };
+
+  const handleDeleteLesson = async () => {
+    if (!editingModuleId || !editingLesson) return;
+    try {
+      await deleteDoc(doc(db, "modules", editingModuleId, "lessons", editingLesson.id));
+      fetchModules();
+    } catch (error) {
+      console.error("Erro ao excluir aula:", error);
+      throw error;
+    }
+  };
+
+  // ========== MARKETING ==========
   const handleSaveMarketing = async () => {
     if (!marketingData.title || !marketingData.youtubeLink) {
       alert("Por favor, preencha o título e o link do YouTube.");
@@ -44,22 +194,9 @@ const Admin = () => {
     setIsSaving(false);
   };
 
-  const handleVideoUpload = (e) => {
-    e.preventDefault();
-    if (!uploadData.title || (!videoFile && !uploadData.videoUrl)) {
-      alert("Por favor, selecione um arquivo de vídeo ou insira um link.");
-      return;
-    }
-    console.log("Subindo vídeo:", uploadData, videoFile);
-    alert(`Aula "${uploadData.title}" simulada com sucesso!`);
-    setUploadData({ title: '', duration: '', moduleId: 'm1', description: '', videoUrl: '' });
-    setVideoFile(null);
-  };
-
   const handleMarketingImageChange = (e) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      // Aviso se enviarem o .ARW
       if (file.name.toLowerCase().endsWith('.arw')) {
         alert("Atenção! Arquivos .ARW (RAW) não podem ser lidos diretamente por navegadores. Por favor, exporte sua foto do ensaio como .JPG ou .PNG e tente novamente.");
         return;
@@ -68,13 +205,12 @@ const Admin = () => {
     }
   };
 
-  // Exportar imagem
   const downloadImage = async (ref, filename, scaleConfig) => {
     if (!ref.current) return;
     try {
       const dataUrl = await htmlToImage.toPng(ref.current, { 
         quality: 1, 
-        pixelRatio: scaleConfig.ratio, // Para exportar num tamanho ultra hd
+        pixelRatio: scaleConfig.ratio,
         style: { transform: 'scale(1)', transformOrigin: 'top left' }
       });
       const link = document.createElement('a');
@@ -87,7 +223,6 @@ const Admin = () => {
     }
   };
 
-  // E-mail Template (gerado dinamicamente a partir dos dados do formulário)
   const emailTemplate = `Assunto: ${marketingData.title} ${marketingData.subtitle} (Aula Magna)
 
 Colega Médico(a),
@@ -102,6 +237,35 @@ Acesse pelo link abaixo no horário marcado:
 Nos vemos lá.
 Dr. Paulo Guimarães Jr.`;
 
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
+
+  // ========== INSCRITOS HELPERS ==========
+  const filteredLeads = leads.filter(lead => {
+    if (!searchTerm.trim()) return true;
+    const term = searchTerm.toLowerCase();
+    return (
+      (lead.name || '').toLowerCase().includes(term) ||
+      (lead.email || '').toLowerCase().includes(term) ||
+      (lead.phone || '').toLowerCase().includes(term) ||
+      (lead.city || '').toLowerCase().includes(term) ||
+      (lead.state || '').toLowerCase().includes(term)
+    );
+  });
+
+  const formatDate = (timestamp) => {
+    if (!timestamp) return '—';
+    try {
+      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    } catch { return '—'; }
+  };
+
+  // ============================================
+  // RENDER
+  // ============================================
   return (
     <div style={{ paddingBottom: '3rem', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <nav className="navbar fade-in" style={{ borderBottom: '1px solid rgba(239, 68, 68, 0.2)' }}>
@@ -113,7 +277,7 @@ Dr. Paulo Guimarães Jr.`;
           <button onClick={() => navigate('/')} className="btn btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.9rem', gap: '0.5rem', background: 'transparent' }}>
             Ver Landing Page Real
           </button>
-          <button onClick={() => navigate('/login')} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <button onClick={handleLogout} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <LogOut size={18} /> Sair
           </button>
         </div>
@@ -122,7 +286,7 @@ Dr. Paulo Guimarães Jr.`;
       <div className="container fade-in-delayed" style={{ flex: 1, maxWidth: '1200px', paddingTop: '3rem' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 3fr', gap: '2rem' }}>
           
-          {/* Menu de Configurações Lateral */}
+          {/* ===== SIDEBAR ===== */}
           <div className="glass-panel" style={{ padding: '1.5rem', height: 'fit-content' }}>
             <h3 style={{ fontSize: '1.1rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--glass-border)', paddingBottom: '0.8rem' }}>Controle Mestre</h3>
             
@@ -141,12 +305,23 @@ Dr. Paulo Guimarães Jr.`;
                   <UploadCloud size={20} /> Aulas EAD (Plataforma)
                 </div>
               </li>
+              <li>
+                <div 
+                  onClick={() => setActiveTab('inscritos')}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', padding: '0.8rem 1rem', background: activeTab === 'inscritos' ? 'rgba(168, 85, 247, 0.1)' : 'transparent', color: activeTab === 'inscritos' ? '#a855f7' : 'var(--text-light)', borderRadius: '8px', cursor: 'pointer', borderLeft: activeTab === 'inscritos' ? '3px solid #a855f7' : '3px solid transparent', transition: 'all 0.2s' }}>
+                  <Users size={20} /> Inscritos
+                  {leads.length > 0 && (
+                    <span style={{ marginLeft: 'auto', background: 'rgba(168, 85, 247, 0.2)', color: '#a855f7', fontSize: '0.75rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '10px' }}>{leads.length}</span>
+                  )}
+                </div>
+              </li>
             </ul>
           </div>
 
-          {/* ÁREA PRINCIPAL DINÂMICA */}
+          {/* ===== MAIN AREA ===== */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
             
+            {/* ==================== MARKETING TAB ==================== */}
             {activeTab === 'marketing' && (
               <>
                 <div className="glass-panel" style={{ padding: '2rem', borderTop: '4px solid #60a5fa' }}>
@@ -204,10 +379,8 @@ Dr. Paulo Guimarães Jr.`;
                       <button onClick={() => downloadImage(feedRef, 'mfmed-feed.png', {ratio: 3})} className="btn" style={{ width: 'auto', padding: '0.4rem 1rem', fontSize: '0.8rem' }}><Download size={14}/> Baixar HD</button>
                     </div>
                     
-                    {/* DOM Onde montamos a arte do Feed */}
                     <div ref={feedRef} style={{ width: '350px', height: '350px', position: 'relative', background: '#0b0f19', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
                       <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', backgroundImage: `url(${bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center top', opacity: 0.6 }}></div>
-                      {/* Gradiente estilo cinema */}
                       <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'linear-gradient(to top, #0b0f19 20%, transparent 80%)' }}></div>
                       
                       <div style={{ position: 'absolute', top: '20px', left: '25px', background: 'rgba(59, 130, 246, 0.2)', backdropFilter: 'blur(5px)', border: '1px solid rgba(59, 130, 246, 0.5)', color: '#60a5fa', padding: '4px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: '5px' }}>
@@ -232,7 +405,6 @@ Dr. Paulo Guimarães Jr.`;
                       <button onClick={() => downloadImage(storyRef, 'mfmed-story.png', {ratio: 4})} className="btn" style={{ width: 'auto', padding: '0.4rem 1rem', fontSize: '0.8rem' }}><Download size={14}/> Baixar HD</button>
                     </div>
                     
-                    {/* DOM Onde montamos a arte do Story */}
                     <div ref={storyRef} style={{ width: '250px', height: '444px', position: 'relative', background: '#0b0f19', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
                       <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', backgroundImage: `url(${bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center top', opacity: 0.5 }}></div>
                       <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'linear-gradient(to top, #0b0f19 30%, transparent 100%)' }}></div>
@@ -255,7 +427,6 @@ Dr. Paulo Guimarães Jr.`;
                         </div>
                       </div>
 
-                      {/* Fake Sticker "Link na Bio/YouTube" */}
                       <div style={{ position: 'absolute', bottom: '25px', width: '100%', textAlign: 'center' }}>
                         <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
                           <ArrowRight size={14} /> Arraste ou clique no link da bio
@@ -280,6 +451,7 @@ Dr. Paulo Guimarães Jr.`;
               </>
             )}
 
+            {/* ==================== VIDEO / GRADE CURRICULAR TAB ==================== */}
             {activeTab === 'video' && (
               <div className="glass-panel" style={{ padding: '2.5rem', borderTop: '4px solid #10b981' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
@@ -287,10 +459,24 @@ Dr. Paulo Guimarães Jr.`;
                     <h2 style={{ fontSize: '1.8rem', marginBottom: '0.3rem' }}>Grade Curricular</h2>
                     <p style={{ color: 'var(--text-muted)', margin: 0 }}>Gerencie seus módulos e aulas da plataforma de alunos.</p>
                   </div>
-                  <button className="btn" style={{ width: 'auto', background: '#10b981', padding: '0.6rem 1.2rem', gap: '8px' }}>
+                  <button onClick={handleAddModule} className="btn" style={{ width: 'auto', background: '#10b981', padding: '0.6rem 1.2rem', gap: '8px' }}>
                     <PlusCircle size={18} /> Novo Módulo
                   </button>
                 </div>
+
+                {loadingModules && (
+                  <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+                    Carregando módulos...
+                  </div>
+                )}
+
+                {!loadingModules && modules.length === 0 && (
+                  <div style={{ textAlign: 'center', padding: '4rem 2rem', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px dashed rgba(255,255,255,0.08)' }}>
+                    <Video size={40} style={{ marginBottom: '1rem', opacity: 0.3 }} />
+                    <p style={{ fontSize: '1.1rem', margin: '0 0 0.5rem 0' }}>Nenhum módulo criado ainda.</p>
+                    <p style={{ fontSize: '0.9rem', margin: 0 }}>Clique em "Novo Módulo" para começar a montar sua grade.</p>
+                  </div>
+                )}
 
                 {modules.map(module => (
                   <div key={module.id} style={{ marginBottom: '2rem', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px', overflow: 'hidden' }}>
@@ -298,24 +484,50 @@ Dr. Paulo Guimarães Jr.`;
                     {/* Module Header */}
                     <div style={{ padding: '1rem 1.5rem', background: 'rgba(0,0,0,0.3)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                       <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#fff' }}>{module.title}</h3>
-                      <button style={{ background: 'none', border: 'none', color: '#10b981', cursor: 'pointer', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <PlusCircle size={14} /> Adicionar Aula
-                      </button>
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                        <button onClick={() => handleRenameModule(module.id, module.title)} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)', borderRadius: '6px', cursor: 'pointer', padding: '6px 10px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', transition: 'all 0.2s' }} title="Renomear módulo">
+                          <Edit3 size={13} /> Renomear
+                        </button>
+                        <button onClick={() => handleDeleteModule(module.id, module.lessons?.length || 0)} style={{ background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#ef4444', borderRadius: '6px', cursor: 'pointer', padding: '6px 10px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', transition: 'all 0.2s' }} title="Excluir módulo">
+                          <Trash2 size={13} />
+                        </button>
+                        <div style={{ width: '1px', height: '20px', background: 'rgba(255,255,255,0.08)', margin: '0 4px' }} />
+                        <button onClick={() => openNewLesson(module.id)} style={{ background: 'none', border: 'none', color: '#10b981', cursor: 'pointer', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '500' }}>
+                          <PlusCircle size={14} /> Adicionar Aula
+                        </button>
+                      </div>
                     </div>
 
                     {/* Lesson Items */}
-                    <div style={{ padding: '1rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <div style={{ padding: '1rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
                       {module.lessons && module.lessons.length > 0 ? (
                         module.lessons.map(lesson => (
-                          <div key={lesson.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.8rem', background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
-                            <div style={{ width: 40, height: 40, background: 'rgba(16, 185, 129, 0.1)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10b981' }}>
-                              <Video size={18} />
+                          <div 
+                            key={lesson.id} 
+                            onClick={() => openEditLesson(module.id, lesson)}
+                            style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.8rem', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s', border: '1px solid transparent' }}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(16, 185, 129, 0.05)'; e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.15)'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,0.2)'; e.currentTarget.style.borderColor = 'transparent'; }}
+                          >
+                            {/* Thumbnail */}
+                            <div style={{ width: 64, height: 36, borderRadius: '6px', overflow: 'hidden', background: 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                              {lesson.thumbnailUrl ? (
+                                <img src={lesson.thumbnailUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              ) : (
+                                <Video size={16} color="#10b981" />
+                              )}
                             </div>
-                            <div style={{ flex: 1 }}>
-                              <h4 style={{ margin: '0 0 0.2rem 0', fontSize: '0.95rem' }}>{lesson.title}</h4>
-                              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{lesson.duration || 'Sem duração'}</span>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <h4 style={{ margin: '0 0 0.2rem 0', fontSize: '0.95rem', color: '#fff' }}>{lesson.title}</h4>
+                              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                {lesson.duration || 'Sem duração'}
+                                {lesson.attachments?.length > 0 && ` • ${lesson.attachments.length} anexo(s)`}
+                              </span>
                             </div>
-                            <span style={{ fontSize: '0.75rem', padding: '4px 10px', background: lesson.published ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)', color: lesson.published ? '#10b981' : '#ef4444', borderRadius: '12px', fontWeight: 'bold' }}>{lesson.published ? 'Publicada' : 'Rascunho'}</span>
+                            <span style={{ fontSize: '0.75rem', padding: '4px 10px', background: lesson.published ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)', color: lesson.published ? '#10b981' : '#ef4444', borderRadius: '12px', fontWeight: 'bold', flexShrink: 0 }}>
+                              {lesson.published ? 'Publicada' : 'Rascunho'}
+                            </span>
+                            <Edit3 size={14} color="rgba(255,255,255,0.3)" style={{ flexShrink: 0 }} />
                           </div>
                         ))
                       ) : (
@@ -326,13 +538,116 @@ Dr. Paulo Guimarães Jr.`;
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
 
+            {/* ==================== INSCRITOS TAB ==================== */}
+            {activeTab === 'inscritos' && (
+              <div className="glass-panel" style={{ padding: '2.5rem', borderTop: '4px solid #a855f7' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                  <div>
+                    <h2 style={{ fontSize: '1.8rem', marginBottom: '0.3rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <Users color="#a855f7" /> Inscritos
+                    </h2>
+                    <p style={{ color: 'var(--text-muted)', margin: 0 }}>
+                      {leads.length} pessoa(s) cadastrada(s) no programa.
+                    </p>
+                  </div>
+                  <button onClick={fetchLeads} className="btn" style={{ width: 'auto', background: '#a855f7', padding: '0.6rem 1.2rem', gap: '8px', fontSize: '0.9rem' }}>
+                    Atualizar Lista
+                  </button>
+                </div>
+
+                {/* Search Bar */}
+                <div style={{ position: 'relative', marginBottom: '1.5rem' }}>
+                  <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.3)' }} />
+                  <input
+                    type="text"
+                    placeholder="Buscar por nome, e-mail, telefone, cidade..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    style={{ width: '100%', padding: '0.8rem 1rem 0.8rem 2.5rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: '#fff', fontSize: '0.95rem', outline: 'none' }}
+                  />
+                </div>
+
+                {loadingLeads && (
+                  <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+                    Carregando inscritos...
+                  </div>
+                )}
+
+                {!loadingLeads && filteredLeads.length === 0 && (
+                  <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+                    {searchTerm ? 'Nenhum resultado para sua busca.' : 'Nenhum inscrito ainda.'}
+                  </div>
+                )}
+
+                {/* Leads List */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                  {filteredLeads.map((lead) => (
+                    <div
+                      key={lead.id}
+                      style={{ background: 'rgba(0,0,0,0.2)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.05)', overflow: 'hidden', transition: 'all 0.2s' }}
+                    >
+                      {/* Lead Row */}
+                      <div
+                        onClick={() => setExpandedLead(expandedLead === lead.id ? null : lead.id)}
+                        style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.8rem 1.2rem', cursor: 'pointer' }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(168, 85, 247, 0.03)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                      >
+                        {/* Avatar */}
+                        <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg, #a855f7, #6366f1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '0.9rem', color: '#fff', flexShrink: 0 }}>
+                          {(lead.name || '?').charAt(0).toUpperCase()}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: '500', fontSize: '0.95rem', color: '#fff' }}>{lead.name || 'Sem nome'}</div>
+                          <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)' }}>{lead.email}</div>
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)', flexShrink: 0, textAlign: 'right' }}>
+                          {formatDate(lead.createdAt)}
+                        </div>
+                        {expandedLead === lead.id ? <ChevronUp size={16} color="rgba(255,255,255,0.3)" /> : <ChevronDown size={16} color="rgba(255,255,255,0.3)" />}
+                      </div>
+
+                      {/* Expanded Details */}
+                      {expandedLead === lead.id && (
+                        <div style={{ padding: '0 1.2rem 1rem 1.2rem', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', paddingTop: '1rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', color: 'var(--text-light)' }}>
+                              <Mail size={14} color="#a855f7" /> {lead.email || '—'}
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', color: 'var(--text-light)' }}>
+                              <Phone size={14} color="#a855f7" /> {lead.phone || '—'}
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', color: 'var(--text-light)' }}>
+                              <MapPin size={14} color="#a855f7" /> {lead.city && lead.state ? `${lead.city}, ${lead.state}` : lead.state || lead.city || '—'}
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', color: 'var(--text-light)' }}>
+                              🔑 Senha temp: <code style={{ background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.85rem' }}>{lead.tempPassword || '—'}</code>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
           </div>
         </div>
       </div>
+
+      {/* LESSON MODAL */}
+      <LessonModal
+        isOpen={lessonModalOpen}
+        onClose={() => { setLessonModalOpen(false); setEditingLesson(null); setEditingModuleId(null); }}
+        onSave={handleSaveLesson}
+        onDelete={editingLesson ? handleDeleteLesson : null}
+        lesson={editingLesson}
+        moduleId={editingModuleId}
+      />
     </div>
   );
 };
