@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShieldCheck, PlayCircle, Library, Users, Loader, Calendar, ArrowRight, CheckCircle, Lock } from 'lucide-react';
 import { db } from '../firebase';
-import { collection, addDoc, getDocs, query, where, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, where, serverTimestamp, doc, getDoc } from 'firebase/firestore';
 import drPauloImg from '../assets/mestre_paulo.jpg';
 
 const Landing = () => {
@@ -20,6 +20,23 @@ const Landing = () => {
     state: '',
     city: ''
   });
+
+  const [liveEvent, setLiveEvent] = useState(null);
+
+  useEffect(() => {
+    const fetchLiveEvent = async () => {
+      try {
+        const docRef = doc(db, "settings", "live_event");
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setLiveEvent(docSnap.data());
+        }
+      } catch (error) {
+        console.error("Erro ao buscar evento:", error);
+      }
+    };
+    fetchLiveEvent();
+  }, []);
 
   const handleChange = (e) => {
     setFormData({...formData, [e.target.name]: e.target.value});
@@ -78,7 +95,7 @@ const Landing = () => {
           name: formData.name,
           email: formData.email,
           tempPassword: tempPassword,
-          youtubeLink: 'https://youtube.com/live/IL4XUtEGZ_I?feature=share'
+          youtubeLink: liveEvent?.youtubeLink || ''
         })
       }).catch(err => console.error('Erro silencioso no disparo do e-mail:', err));
 
@@ -120,23 +137,25 @@ const Landing = () => {
           {/* LADO ESQUERDO DA TELA: PROMESSA E VALOR */}
           <div className="landing-hero fade-in">
             <h1 className="title" style={{ lineHeight: '1.2' }}>
-              Modulação Fisiológica,<br/>
-              <span style={{ fontSize: '2.8rem', color: 'var(--accent-color)', fontWeight: '600' }}>QUARTA FEIRA ÀS 19h30min.</span>
+              {liveEvent?.title || 'MFMed Hub'},<br/>
+              <span style={{ fontSize: '2.8rem', color: 'var(--accent-color)', fontWeight: '600' }}>{liveEvent?.date || 'Sua Evolução Médica'}</span>
             </h1>
             <p className="subtitle">
               Tenha acesso exclusivo a aulas de alto nível rigorosamente revisadas, materiais científicos atualizados e uma comunidade que discute casos clínicos reais direto do seu consultório.
             </p>
             
-            <div style={{ background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)', borderRadius: '12px', padding: '1.5rem', marginBottom: '2.5rem', display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
-              <div style={{ background: 'rgba(59, 130, 246, 0.2)', padding: '0.8rem', borderRadius: '50%', color: '#60a5fa' }}>
-                <Calendar size={28} />
+            {liveEvent && liveEvent.youtubeLink && (
+              <div style={{ background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)', borderRadius: '12px', padding: '1.5rem', marginBottom: '2.5rem', display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+                <div style={{ background: 'rgba(59, 130, 246, 0.2)', padding: '0.8rem', borderRadius: '50%', color: '#60a5fa' }}>
+                  <Calendar size={28} />
+                </div>
+                <div>
+                  <span style={{ color: '#60a5fa', fontWeight: 'bold', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '1px' }}>{liveEvent.subtitle || 'Próximo evento'}</span>
+                  <h3 style={{ margin: '0.5rem 0', fontSize: '1.2rem', lineHeight: '1.4', color: '#fff' }}>{liveEvent.title}</h3>
+                  <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.95rem' }}>{liveEvent.date}</p>
+                </div>
               </div>
-              <div>
-                <span style={{ color: '#60a5fa', fontWeight: 'bold', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Prescrição de testosterona, monitoramento, mitos e verdades.</span>
-                <h3 style={{ margin: '0.5rem 0', fontSize: '1.2rem', lineHeight: '1.4', color: '#fff' }}>Reposição de Testosterona no Paciente Cardiovascular: <span style={{ fontWeight: 'normal', opacity: 0.9 }}>protocolo, monitoramento e conduta segura</span></h3>
-                <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.95rem' }}>Nesta Quarta-feira, às 19h (Horário de Brasília)</p>
-              </div>
-            </div>
+            )}
 
             <div className="landing-features">
               <div className="feature-item">
@@ -244,11 +263,11 @@ const Landing = () => {
                 <h2 style={{ fontSize: '1.6rem', fontWeight: 'bold', marginBottom: '0.8rem', color: '#fff' }}>Vaga Garantida!</h2>
                 
                 <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '12px', padding: '1.2rem', marginBottom: '1.5rem', width: '100%' }}>
-                  <h3 style={{ color: '#ef4444', margin: '0 0 0.5rem 0', fontSize: '1.1rem' }}>⚠️ A AULA É HOJE ÀS 19h30</h3>
+                  <h3 style={{ color: '#ef4444', margin: '0 0 0.5rem 0', fontSize: '1.1rem' }}>⚠️ {liveEvent?.date ? `A AULA É ${liveEvent.date.toUpperCase()}` : 'AULA EM BREVE'}</h3>
                   <p style={{ color: '#fff', fontSize: '0.95rem', marginBottom: '1rem', lineHeight: '1.4' }}>
                     Para não esquecer, clique no botão abaixo agora mesmo e ative o lembrete direto lá no YouTube:
                   </p>
-                  <a href="https://youtube.com/live/IL4XUtEGZ_I?feature=share" target="_blank" rel="noopener noreferrer" className="btn" style={{ background: '#ef4444', color: '#fff', textDecoration: 'none', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
+                  <a href={liveEvent?.youtubeLink || '#'} target="_blank" rel="noopener noreferrer" className="btn" style={{ background: '#ef4444', color: '#fff', textDecoration: 'none', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
                     <PlayCircle size={20} /> Acessar Link do YouTube
                   </a>
                 </div>

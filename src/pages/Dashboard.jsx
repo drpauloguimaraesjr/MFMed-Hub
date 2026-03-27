@@ -1,10 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FileText, Download, Send, Play, Paperclip, Library, Heart, MessageCircle } from 'lucide-react';
-import { db } from '../firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { useNavigate } from 'react-router-dom';
+import { FileText, Download, Send, Play, Paperclip, Library, Heart, MessageCircle, LogOut } from 'lucide-react';
+import { db, logout } from '../firebase';
+import { doc, getDoc, collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { useAuth } from '../AuthContext';
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [newComment, setNewComment] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
   const [replyingTo, setReplyingTo] = useState(null);
@@ -21,6 +23,7 @@ const Dashboard = () => {
   const userInitial = userName.charAt(0).toUpperCase();
 
   const [liveEvent, setLiveEvent] = useState(null);
+  const [loadingModules, setLoadingModules] = useState(true);
 
   useEffect(() => {
     const fetchLiveEvent = async () => {
@@ -34,7 +37,34 @@ const Dashboard = () => {
         console.error("Erro ao buscar agendamento ao vivo:", error);
       }
     };
+
+    const fetchModules = async () => {
+      setLoadingModules(true);
+      try {
+        const modulesQuery = query(collection(db, "modules"), orderBy("order", "asc"));
+        const modulesSnap = await getDocs(modulesQuery);
+        
+        const modulesData = [];
+        for (const moduleDoc of modulesSnap.docs) {
+          const lessonsQuery = query(collection(db, "modules", moduleDoc.id, "lessons"), orderBy("order", "asc"));
+          const lessonsSnap = await getDocs(lessonsQuery);
+          // Only show published lessons to students
+          const lessons = lessonsSnap.docs
+            .map(d => ({ id: d.id, ...d.data() }))
+            .filter(l => l.published);
+          if (lessons.length > 0) {
+            modulesData.push({ id: moduleDoc.id, ...moduleDoc.data(), lessons });
+          }
+        }
+        setCourseModules(modulesData);
+      } catch (error) {
+        console.error("Erro ao carregar módulos:", error);
+      }
+      setLoadingModules(false);
+    };
+
     fetchLiveEvent();
+    fetchModules();
   }, []);
 
   const getYoutubeEmbedUrl = (url) => {
@@ -128,6 +158,26 @@ const Dashboard = () => {
     }
   };
 
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
+
+  // Helper: detect video embed URL from any format
+  const getVideoEmbedUrl = (url) => {
+    if (!url) return null;
+    try {
+      // Panda Video
+      if (url.includes('pandavideo')) {
+        const match = url.match(/[?&]v=([^&]+)/);
+        if (match) return `https://player.pandavideo.com.br/embed/?v=${match[1]}`;
+        return url;
+      }
+      // YouTube
+      return getYoutubeEmbedUrl(url);
+    } catch { return url; }
+  };
+
   return (
     <div style={{ paddingBottom: '3rem' }}>
       <nav className="navbar fade-in">
@@ -139,6 +189,12 @@ const Dashboard = () => {
           ) : (
             <div style={{ width: 42, height: 42, borderRadius: '50%', background: 'linear-gradient(to bottom right, var(--accent-color), #8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>{userInitial}</div>
           )}
+          <button onClick={handleLogout} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', padding: '0.4rem 0.6rem', borderRadius: '6px', transition: 'all 0.2s' }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = '#ef4444'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; }}
+          >
+            <LogOut size={16} /> Sair
+          </button>
         </div>
       </nav>
 
@@ -151,6 +207,14 @@ const Dashboard = () => {
               Conteúdo do Curso
             </h3>
             
+            {loadingModules && (
+              <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem 0', fontSize: '0.9rem' }}>Carregando...</div>
+            )}
+
+            {!loadingModules && courseModules.length === 0 && (
+              <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem 0', fontSize: '0.9rem' }}>Nenhuma aula disponível ainda.</div>
+            )}
+
             {courseModules.map(module => (
               <div key={module.id} className="module-group">
                 <div className="module-title">{module.title}</div>
@@ -159,7 +223,7 @@ const Dashboard = () => {
                     <div 
                       key={lesson.id} 
                       className={`lesson-item ${activeVideo?.id === lesson.id ? 'active' : ''}`}
-                      onClick={() => setActiveVideo({ id: lesson.id, title: lesson.title, module: module.title })}
+                      onClick={() => setActiveVideo({ id: lesson.id, title: lesson.title, module: module.title, videoUrl: lesson.videoUrl, description: lesson.description, attachments: lesson.attachments || [], duration: lesson.duration })}
                     >
                       <Play size={14} fill={activeVideo?.id === lesson.id ? "currentColor" : "none"} style={{ opacity: activeVideo?.id === lesson.id ? 1 : 0.5, flexShrink: 0 }} />
                       <div style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -213,11 +277,11 @@ const Dashboard = () => {
               </div>
               
               <div className="video-container" style={{ position: 'relative', overflow: 'hidden', paddingBottom: '56.25%', height: 0, borderRadius: '12px', background: '#000' }}>
-                {activeVideo?.pandaId ? (
+                {activeVideo?.videoUrl ? (
                   <iframe 
-                    src={`https://player.pandavideo.com.br/embed/?v=${activeVideo.pandaId}`} 
+                    src={getVideoEmbedUrl(activeVideo.videoUrl)} 
                     style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }} 
-                    allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture" 
+                    allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; clipboard-write" 
                     allowFullScreen
                   ></iframe>
                 ) : (
@@ -225,19 +289,34 @@ const Dashboard = () => {
                     <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'rgba(96, 165, 250, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <Play size={40} color="var(--accent-color)" />
                     </div>
-                    <p style={{ fontSize: '1.1rem' }}>Esse vídeo ainda está sendo carregado</p>
-                  </div>
-                )}
-                
-                {/* Download/Offline Action Bar */}
-                {activeVideo?.pandaId && (
-                  <div style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 10 }}>
-                    <button className="btn" style={{ padding: '0.4rem 1rem', fontSize: '0.85rem', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(5px)' }}>
-                      ⬇ Baixar (PWA)
-                    </button>
+                    <p style={{ fontSize: '1.1rem' }}>Vídeo em breve</p>
                   </div>
                 )}
               </div>
+
+              {/* Lesson description + attachments */}
+              {(activeVideo.description || (activeVideo.attachments && activeVideo.attachments.length > 0)) && (
+                <div className="glass-panel" style={{ padding: '1.5rem' }}>
+                  {activeVideo.description && (
+                    <p style={{ color: 'var(--text-light)', fontSize: '0.95rem', lineHeight: '1.6', margin: 0, marginBottom: activeVideo.attachments?.length > 0 ? '1rem' : 0 }}>{activeVideo.description}</p>
+                  )}
+                  {activeVideo.attachments && activeVideo.attachments.length > 0 && (
+                    <div>
+                      <h4 style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '0.6rem', fontWeight: '600' }}>📎 Material de Apoio</h4>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        {activeVideo.attachments.map((att, i) => (
+                          <a key={i} href={att.url} target="_blank" rel="noopener noreferrer" className="comment-attachment" style={{ textDecoration: 'none' }}>
+                            <FileText size={16} />
+                            {att.name}
+                            {att.comment && <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginLeft: '0.5rem' }}>— {att.comment}</span>}
+                            <Download size={14} style={{ marginLeft: 'auto' }} />
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </>
           )}
 
@@ -247,7 +326,7 @@ const Dashboard = () => {
                   <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'rgba(96, 165, 250, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Play size={40} color="var(--accent-color)" />
                   </div>
-                  <p style={{ fontSize: '1.1rem' }}>Selecione uma aula no módulo ao lado</p>
+                  <p style={{ fontSize: '1.1rem' }}>{courseModules.length > 0 ? 'Selecione uma aula no módulo ao lado' : 'Em breve novas aulas serão adicionadas'}</p>
                 </div>
              </div>
           )}
